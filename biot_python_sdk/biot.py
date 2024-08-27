@@ -5,9 +5,10 @@ import urllib.parse
 import mimetypes
 import os
 
+from datetime import datetime
 API_CALL_RETRIES = 3
 RETRY_DELAY = 3 #seconds
-
+from BioT_API_URLS import *
 class APIClient:
     """
     A client for making HTTP requests to a specified API.
@@ -143,7 +144,9 @@ class DataManager:
         self.healthcheck_endpoints = {
             'device': '/device/system/healthCheck',
             'generic-entity': '/generic-entity/system/healthCheck',
-            'file': '/file/system/healthCheck'
+            'file': '/file/system/healthCheck',
+            'dms': DMS_HEALTHCHECK_ENDPOINT,
+            'settings' : SETTINGS_HEALTHCHECK_ENDPOINT
         }
 
     def _determine_healthcheck_endpoint(self, endpoint):
@@ -196,7 +199,27 @@ class DataManager:
             return response
         print(f"API request failed with status code: {response.status_code if response else 'Unknown'}")
         return None
-    
+
+    def _get_template_id_from_name(self,template_name):
+        if type(template_name)==str:
+            filter_type = 'eq'
+        elif type(template_name) is list:
+            filter_type = 'in'
+        else:
+            print('Template name is not str or list')
+            return None
+        search_request = {"filter": {"name": {f"{filter_type}": template_name}}}
+        search_request_encoded = urllib.parse.quote(json.dumps(search_request))
+        response =  self._make_authenticated_request(f"{TEMPLATES_SUB_URL}?searchRequest={search_request_encoded}")
+        template_id_list = []
+        templates_data = response.json()['data']
+        if type(template_name)==str:
+            return templates_data[0]['id']
+        else:
+            for templte in response.json()['data']:
+                template_id_list.append(templte['id'])
+            return template_id_list
+
     def get_session_by_uuid(self, session_uuid):
         """
         Retrieve a session by its UUID.
@@ -210,6 +233,7 @@ class DataManager:
         search_request = {"filter": {"session_uuid": {"in": [session_uuid]}}}
         search_request_encoded = urllib.parse.quote(json.dumps(search_request))
         return self._make_authenticated_request(f"/device/v1/devices/usage-sessions?searchRequest={search_request_encoded}")
+
 
 
     def get_ge_by_filter(self, filter):
@@ -373,4 +397,159 @@ class DataManager:
             return file_info
         else:
             return None
+
+
+    def export_snapshot_by_entities(self,report_name,ge_template_names_to_filt, save_devices=False,start_date = "2024-05-01T09:03:33Z"):
+
+        """
+                Generates and exports a snapshot of data entities based on specified templates and a date range.
+
+                Parameters:
+                - report_name (str): The name of the report to be generated.
+                - ge_template_names_to_filt (list): A list of template names used to filter the generic entities.
+                - save_devices (bool, optional): A flag to indicate whether device data should be included in the report. Defaults to False.
+                - start_date (str, optional): The start date for the data filter in ISO 8601 format. Defaults to "2024-05-01T09:03:33Z".
+
+                Returns:
+                - response: The response from the server after making the authenticated request to create the data report.
+
+                Usage:
+                This method is used to generate and export a snapshot of the configuration data for various entities and optionally devices, within a specified date range.
+        """
+        ge_template_id_to_filt = self._get_template_id_from_name(ge_template_names_to_filt)
+        today_date=  datetime.now().isoformat()
+        queries=[]
+        query=dict()
+        filter_dict =dict()
+        filter_dict['_templateId']={'in':ge_template_id_to_filt}
+        filter_dict['_creationTime'] = {"in": [],"from": start_date,"to": today_date,"notIn": [],"filter": {}}
+        query["dataType"] = "generic-entity"
+        query["filter"] = filter_dict
+        queries.append(query)
+        if save_devices:
+            device_template_id =self._get_template_id_from_name('androidgateway')
+            query = dict()
+            filter_dict = dict()
+            filter_dict['_templateId'] = {'eq': device_template_id}
+            filter_dict['_creationTime'] = {"in": [], "from": start_date, "to": today_date, "notIn": [], "filter": {}}
+            query["dataType"] = "device"
+            query["filter"] = filter_dict
+            queries.append(query)
+
+        body_dict =dict()
+        body_dict['outputMetadata']={'exportFormat' :'JSON'}
+        body_dict['queries'] = queries
+        body_dict['name'] = report_name
+        response = self._make_authenticated_request(CREATE_DATA_REPORT_URL, method="POST", json=body_dict)
+        return response
+
+
+    def export_full_configuration_snapshot(self, report_name, start_date="2024-05-01T09:03:33Z"):
+        """ A wrapper function for 'export_snapshot_by_entities' above for saving all entites used for configuration """
+        ge_template_names_to_filt = ['sensor','patch','montage_configuration','channel']
+        return self.export_snapshot_by_entities( report_name, ge_template_names_to_filt,save_devices=True, start_date = start_date)
+
+    def get_report_file_by_name(self,report_name):
+        """
+                Retrieves the report file by its name.
+
+                Parameters:
+                - report_name (str or list): The name(s) of the report(s) to be retrieved.
+
+                Returns:
+                - reports_data_dict (dict): A dictionary containing the report data, where the keys are report types (e.g., 'device', 'generic-entity') and the values are the report data in JSON format.
+        """
+        if type(report_name)==str:
+            filter_type = 'eq'
+        elif type(report_name) is list:
+            filter_type = 'in'
+        else:
+            print('Template name is not str or list')
+            return None
+        search_request = {"filter": {"name": {f"{filter_type}": report_name}}}
+        search_request_encoded = urllib.parse.quote(json.dumps(search_request))
+        response = self._make_authenticated_request(f"{GET_DATA_REPORT_URL}?searchRequest={search_request_encoded}")
+        reports_data_dict = dict()
+        if response:
+            reports=response.json()['data']
+            if len(reports)>1:
+                raise Exception('More Than One report with this name.')
+            for report in reports:
+                for key in report['fileOutput']['filesLocation'].keys():
+                    report_paths=report['fileOutput']['filesLocation'][key]['paths']
+                    for path in report_paths:
+                        response=requests.get(path)
+                        if response.status_code==200:
+                            reports_data_dict[key] = response.json()
+            return reports_data_dict
+
+
+    def post_full_configuration_report(self,report_dict):
+        """
+               Posts the full configuration data (retrieved from a report) to the server.
+
+               Parameters:
+               - report_dict (dict): The dictionary containing the report data to be posted, typically retrieved from the `get_report_file_by_name` method.
+
+               Returns:
+               - None. (Prints the response from the server for each posted entity.)
+
+               Usage:
+               This method is used to post a full configuration report back to the server. It handles both device and
+               generic entity data. It first checks if there are 'device' entities in the report, then posts them. After
+               that, it processes 'generic-entity' data in a specific order: 'sensor', 'patch', 'montage_configuration',
+               and 'channel'.
+        """
+        if 'device' in report_dict.keys():
+            self.post_report_json(report_dict['device'], template_type='device')
+        if 'generic-entity' in report_dict.keys():
+            ge_report= report_dict['generic-entity']
+            ge_post_order = ('sensor','patch','montage_configuration','channel')
+            for template_name in ge_post_order:
+                current_template_entities = [ge for ge in ge_report if ge['_template']['name']==template_name]
+                self.post_report_json(current_template_entities, template_type='generic-entity')
+
+
+    def post_report_json(self,report_data,template_type):
+        """
+                Posts a single report (either device or generic entity) in JSON format to the server.
+
+                Parameters:
+                - report_data (list): The list of entities to be posted, extracted from the report.
+                - template_type (str): The type of template ('device' or 'generic-entity') that is being posted.
+
+                Returns:
+                - None. (Prints the response from the server for each posted entity.)
+
+                Usage:
+                This method is a helper function used by `post_full_configuration_report` to post individual entities to
+                the server, either as devices or generic entities. Depending on the `template_type`, it handles the
+                JSON structure differently for devices and generic entities.
+        """
+        post_json = dict()
+        for entity in report_data:
+            for key in entity.keys():
+                post_json['_templateId'] = entity['_template']['id']
+                post_json['_ownerOrganization'] = {'id':entity['_ownerOrganization']['id']}
+                if template_type=='device':
+                    post_json['_id'] = entity['_id']
+                    post_json['_configuration']=entity['_configuration']
+                    post_json['_timezone'] = entity['_timezone']
+                else:
+                    post_json['_name'] = entity['_name']
+                if key[0]!='_': # not built in attribute
+                    if type(entity[key])==dict:
+                        post_json[key] = {'id':entity[key]['id']}
+                    else:
+                        post_json[key] = entity[key]
+            if template_type=='device':
+                response = self._make_authenticated_request(endpoint=DEVICES_URL, method='POST', json=post_json)
+                print(response)
+            if template_type == 'generic-entity':
+                response = self._make_authenticated_request(endpoint=GENERIC_ENTITES_URL,method='POST',json=post_json)
+                print(response)
+
+
+
+
     
