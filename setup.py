@@ -3,10 +3,16 @@ from setuptools import setup
 with open('requirements.txt') as f:
     required = f.read().splitlines()
 
+# read the contents of your README file
+from pathlib import Path
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README.md").read_text()
+
 setup(
     name='biot_python_sdk',
-    version='1.0.4',
+    version='1.0.5',
     description='A python SDK that wraps Bio-T Open API',
+    long_description=long_description,
     author='Stanislav Steinberg',
     author_email='sstbrg@gmail.com',
     url='https://github.com/sstbrg/biot_python_sdk',
