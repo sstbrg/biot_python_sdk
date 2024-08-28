@@ -10,9 +10,10 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name='biot_python_sdk',
-    version='1.0.5',
+    version='1.0.6',
     description='A python SDK that wraps Bio-T Open API',
     long_description=long_description,
+    long_description_content_type='text/markdown',
     author='Stanislav Steinberg',
     author_email='sstbrg@gmail.com',
     url='https://github.com/sstbrg/biot_python_sdk',
