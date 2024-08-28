@@ -5,7 +5,7 @@ with open('requirements.txt') as f:
 
 setup(
     name='biot_python_sdk',
-    version='1.0.3',
+    version='1.0.4',
     description='A python SDK that wraps Bio-T Open API',
     author='Stanislav Steinberg',
     author_email='sstbrg@gmail.com',
