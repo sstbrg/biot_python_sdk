@@ -455,7 +455,7 @@ class DataManager:
         # notify backend on upload completion so it'll reunite the parts into a single file
         etags_to_notify = [{"partNumber": i + 1, "etag": etag} for i, etag in enumerate(etags)]
         print("ETags:", ', '.join(f"Part {i + 1}: {etag}" for i, etag in enumerate(etags)))
-        response = self._make_authenticated_request(f"/file/v1/files/upload/parts/{file_id}/complete", method="POST", json={"etags": etags_to_notify})
+        response = self._make_authenticated_request(f"/file/v1/files/upload/parts/{file_id}/complete", method="POST", json={"parts": etags_to_notify})
         delete_file_parts()  
         print("Multipart File Upload Completed", response.json())
         return file_id
