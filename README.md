@@ -7,6 +7,7 @@ This document provides an overview of the Biot Python SDK, a collection of class
 - [APIClient](#apiclient)
 - [BiotClient](#biotclient)
 - [DataManager](#datamanager)
+- [ReportManager](#reportmanager)
 
 ## APIClient
 
@@ -67,5 +68,29 @@ The `DataManager` class is a manager for handling data operations with the Biot 
 - `upload_file(self, file_path)`: Uploads a file to the Biot API.
 - `upload_file_from_ram(self, data, file_name)`: Uploads a file from memory to the Biot API.
 - `upload_multipart(self, file_path, file_name, chunk_size=1024 * 1024 * 5)`: Uploads a file in multipart format to the Biot API.
+
+## ReportManager
+
+The `ReportManager` class provides functionality for exporting, retrieving, and posting configuration snapshots of various entities using the report system. It handles data for devices and generic entities, allowing for the export of reports, transfer of configurations across organizations, and updates of references between entities.
+
+### Attributes
+
+- `data_mgr`: An instance of the data manager class responsible for interacting with the backend API.
+- `configuration_template_names` (list): A list of template names used for configuration.
+- `back_reference_mapping` (dict): A mapping of entities to their back references, used for updating references after posting.
+- `reference_to_copy_dict` (dict): A dictionary defining the mapping between entities and the references that need to be copied when copying configurations between organizations.
+- `ge_post_order` (tuple): The order in which generic entities should be posted to ensure dependencies are met.
+
+### Methods
+
+- `export_snapshot_by_entities(self, report_name, ge_template_names_to_filt, save_devices=False, start_date="2024-05-01T09:03:33Z")`: Generates and exports a snapshot of data entities based on specified templates and a date range.
+- `export_full_configuration_snapshot(self, report_name, start_date="2024-05-01T09:03:33Z")`: A wrapper function for `export_snapshot_by_entities` that exports the full configuration snapshot.
+- `get_report_file_by_name(self, report_name)`: Retrieves the report file by its name.
+- `post_full_configuration_report(self, report_dict)`: Posts the full configuration data (retrieved from a report) to the server.
+- `post_report_json(self, report_data, template_type)`: Posts a single report (either device or generic entity) in JSON format to the server.
+- `config_report_to_different_org(self, src_org_id, new_org_id, report_data_dict)`: Configures a report to be associated with a different organization.
+- `full_org_transfer_wrapper(self, src_org_id, dst_org_id, report_name, assests_to_assign_dict=None)`: Transfers an entire organization configuration to another organization.
+- `filter_report_for_copy(self, report_data_dict, copy_dict)`: Filters the report data based on specified assets.
+- `update_report_by_reference_lookuptable(self, lookup_table, report_data, reference_name, template_name)`: Updates report data by replacing references with IDs from a lookup table.
 
 The SDK provides a convenient and easy-to-use interface for interacting with the Biot API, allowing developers to quickly and easily build applications that leverage the API's functionality.
