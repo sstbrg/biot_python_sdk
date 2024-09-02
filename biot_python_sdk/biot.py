@@ -2,8 +2,8 @@ import time
 import json
 import requests
 import urllib.parse
-import mimetypes
 import os
+from biot_python_sdk.multipart import *
 
 from datetime import datetime
 API_CALL_RETRIES = 3
@@ -385,16 +385,35 @@ class DataManager:
         return self._make_authenticated_request(f"/generic-entity/v1/generic-entities/{entity_id}", method='DELETE')
     
     def _create_file_and_get_upload_url(self, file_name, mime_type):
-        response= self._make_authenticated_request(f"/file/v1/files/upload", method="POST", json={"name": file_name, "mimeType": mime_type})
+        """
+        Create a file on the Biot API and retrieve a signed URL for uploading the file data.
+
+        Args:
+            file_name (str): The name of the file to create.
+            mime_type (str): The MIME type of the file.
+
+        Returns:
+            dict: The file information returned by the API, or None if the request failed.
+        """
+        response = self._make_authenticated_request(f"/file/v1/files/upload", method="POST", json={"name": file_name, "mimeType": mime_type})
         return response.json() if response else None
     
     def upload_file(self, file_path):
+        """
+        Upload a file to the Biot API.
+
+        This function creates a file on the Biot API with the given name and MIME type,
+        retrieves a signed URL for uploading the file data, and then uploads the file to the signed URL.
+
+        Args:
+            file_path (str): The path to the file to upload.
+
+        Returns:
+            dict: The file information returned by the API, or None if the upload failed.
+        """
         # Extract file name and MIME type
         file_name = os.path.basename(file_path)
-        mime_type = mimetypes.guess_type(file_path)[0]
-        if mime_type is None:
-            # assume it's binary
-            mime_type = 'application/octet-stream'
+        mime_type = get_mime_type(file_path)
         file_info = self._create_file_and_get_upload_url(file_name, mime_type)
 
         if file_info:
@@ -409,6 +428,20 @@ class DataManager:
             return None
     
     def upload_file_from_ram(self, data, file_name):
+        """
+        Upload a file from memory to the Biot API.
+
+        This function creates a file on the Biot API with the given name and MIME type,
+        retrieves a signed URL for uploading the file data, and then uploads the data to the signed URL.
+
+        Args:
+            data (bytes): The data to upload.
+            file_name (str): The name to use for the uploaded file.
+
+        Returns:
+            dict: The file information returned by the API, or None if the upload failed.
+        """
+
         mime_type = 'application/octet-stream'
         file_info = self._create_file_and_get_upload_url(file_name, mime_type)
         if file_info:
@@ -420,6 +453,60 @@ class DataManager:
             return file_info
         else:
             return None
+          
+    def upload_multipart(self, file_path, file_name, chunk_size=1024 * 1024 * 5):
+        """
+        Upload a file in multipart format to the Biot API.
+
+        This function splits the file into parts, uploads each part to the API, and then notifies the API
+        that the upload is complete. The API will then reassemble the parts into a single file.
+
+        Args:
+            file_path (str): The path to the file to upload.
+            file_name (str): The name to use for the uploaded file.
+            chunk_size (int, optional): The size of each part to split the file into. Defaults to 5MB.
+
+        Returns:
+            str: The ID of the uploaded file.
+
+        Raises:
+            ValueError: If the response from the API does not contain the 'signedUrls' key.
+        """
+
+        print(f"Uploading file in multipart: {file_path}")
+        split_file(file_path, chunk_size)
+        print("File split into parts.")
+        parts = get_file_parts()
+        mime_type = get_mime_type(file_path)
+        json = {
+            "name": file_name,
+            "mimeType": mime_type,
+            "parts": len(parts)
+        }
+        response = self._make_authenticated_request(f"/file/v1/files/upload/parts/", method="POST", json=json)
+        upload_info = response.json()
+        if 'signedUrls' not in upload_info:
+            raise ValueError("Response does not contain 'signedUrls' key")
+        signed_urls = {url_info["partNumber"]: url_info["signedUrl"] for url_info in upload_info["signedUrls"]}
+        file_id = upload_info["id"]
+        
+        print("Parts uploaded. Signed URLs:")
+        for part_number, signed_url in signed_urls.items():
+            print(f"Part {part_number}: {signed_url}")
+
+        etags = []
+        for i, part in enumerate(parts):
+            etag = upload_part(signed_urls[i + 1], part)
+            etags.append(etag)
+
+        # notify backend on upload completion so it'll reunite the parts into a single file
+        etags_to_notify = [{"partNumber": i + 1, "etag": etag} for i, etag in enumerate(etags)]
+        print("ETags:", ', '.join(f"Part {i + 1}: {etag}" for i, etag in enumerate(etags)))
+        response = self._make_authenticated_request(f"/file/v1/files/upload/parts/{file_id}/complete", method="POST", json={"parts": etags_to_notify})
+        delete_file_parts()  
+        print("Multipart File Upload Completed", response.json())
+        return file_id
+
 
 class ReportManager:
     """
@@ -707,4 +794,3 @@ class ReportManager:
                         report_data[i][reference_name]['id'] = lookup_table[r[reference_name]['id']]
         return report_data
 
-    
