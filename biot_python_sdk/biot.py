@@ -4,11 +4,12 @@ import requests
 import urllib.parse
 import os
 from biot_python_sdk.multipart import *
-
+from biot_python_sdk.BioT_API_URLS import *
 from datetime import datetime
+
 API_CALL_RETRIES = 3
 RETRY_DELAY = 3 #seconds
-from BioT_API_URLS import *
+
 class APIClient:
     """
     A client for making HTTP requests to a specified API.
