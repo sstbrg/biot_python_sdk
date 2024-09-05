@@ -39,18 +39,13 @@ def get_mime_type(file_path):
     mime_type, _ = mimetypes.guess_type(file_path)
     return mime_type or "application/octet-stream"
 
-
 # Function to get list of file parts and sort them
 def get_file_parts():
-    # List files with 'part_' prefix
-    parts = [f for f in os.listdir() if f.startswith("part_") and f.endswith(".bin")]
-    # Define a function to extract the suffix part for sorting
-    def extract_suffix(file_name):
-        match = re.search(r'part_(\w+)\.bin', file_name)
-        return match.group(1) if match else ''
-
-    # Sort parts based on the suffix
-    parts.sort(key=extract_suffix)
+    # List and sort files with 'part_' prefix, based on the suffix part
+    parts = sorted(
+        [f for f in os.listdir() if f.startswith("part_") and f.endswith(".bin")],
+        key=lambda f: re.search(r'part_(\w+)\.bin', f).group(1)
+    )
     return parts
 
 def upload_part(signed_url, file_path):
