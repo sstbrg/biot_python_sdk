@@ -509,7 +509,6 @@ class DataManager:
         print("Multipart File Upload Completed", response.json())
         return file_id
 
-
 class ReportManager:
     """
       The ReportManager class provides functionality for exporting, retrieving, and posting configuration snapshots of various entities using the report system.
