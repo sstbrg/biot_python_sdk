@@ -497,7 +497,8 @@ class DataManager:
 
         etags = []
         for i, part in enumerate(parts):
-            etag = upload_part(signed_urls[i + 1], part)
+            part_number = i + 1
+            etag = upload_part(signed_urls[part_number], part)
             etags.append(etag)
 
         # notify backend on upload completion so it'll reunite the parts into a single file

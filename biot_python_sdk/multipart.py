@@ -1,5 +1,6 @@
 import requests
 import os
+import re
 import platform
 import subprocess
 import mimetypes
@@ -18,6 +19,7 @@ POWERSHELL_SCRIPT_PATH = "split-file.ps1"
 
 
 # Function to split file into parts
+
 def split_file(file_path, part_size):
     system = platform.system()
     if system == "Darwin":  # macOS
@@ -50,9 +52,19 @@ def get_mime_type(file_path):
     mime_type, _ = mimetypes.guess_type(file_path)
     return mime_type or "application/octet-stream"
 
-# Function to get list of file parts
+
+# Function to get list of file parts and sort them
 def get_file_parts():
-    return [f for f in os.listdir() if f.startswith("part_")]
+    # List files with 'part_' prefix
+    parts = [f for f in os.listdir() if f.startswith("part_") and f.endswith(".bin")]
+    # Define a function to extract the suffix part for sorting
+    def extract_suffix(file_name):
+        match = re.search(r'part_(\w+)\.bin', file_name)
+        return match.group(1) if match else ''
+
+    # Sort parts based on the suffix
+    parts.sort(key=extract_suffix)
+    return parts
 
 # # Function to initiate the upload
 # def initiate_upload(api_url, file_name, mime_type, parts_count, token):
@@ -76,6 +88,7 @@ def get_file_parts():
 #     return upload_info["id"], signed_urls
 
 # Function to upload a file part
+
 def upload_part(signed_url, file_path):
     with open(file_path, 'rb') as file_part:
         response = requests.put(signed_url, data=file_part)
