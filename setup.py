@@ -10,7 +10,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name='biot_python_sdk',
-    version='1.0.12',
+    version='1.0.13',
     description='A python SDK that wraps Bio-T Open API',
     long_description=long_description,
     long_description_content_type='text/markdown',

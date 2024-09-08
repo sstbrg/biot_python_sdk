@@ -399,7 +399,9 @@ class DataManager:
         if " " in file_name:
             print("Warning: File name contains spaces. Replacing spaces with underscores.")
             file_name_to_upload = file_name.replace(" ", "_")
-
+        else:
+            file_name_to_upload = file_name
+            
         response = self._make_authenticated_request(f"/file/v1/files/upload", method="POST", json={"name": file_name_to_upload, "mimeType": mime_type})
         return response.json() if response else None
     
@@ -480,6 +482,8 @@ class DataManager:
         if "_" in file_name and " " in file_path:
             print("Warning: File name contains underscores and spaces. Replacing spaces with underscores.")
             file_name_to_upload = file_name.replace(" ", "_")
+        else
+            file_name_to_upload = file_name
 
         print(f"Uploading file in multipart: {file_path}")
         split_file(file_path, chunk_size)
