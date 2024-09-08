@@ -396,7 +396,11 @@ class DataManager:
         Returns:
             dict: The file information returned by the API, or None if the request failed.
         """
-        response = self._make_authenticated_request(f"/file/v1/files/upload", method="POST", json={"name": file_name, "mimeType": mime_type})
+        if " " in file_name:
+            print("Warning: File name contains spaces. Replacing spaces with underscores.")
+            file_name_to_upload = file_name.replace(" ", "_")
+
+        response = self._make_authenticated_request(f"/file/v1/files/upload", method="POST", json={"name": file_name_to_upload, "mimeType": mime_type})
         return response.json() if response else None
     
     def upload_file(self, file_path):
@@ -473,6 +477,9 @@ class DataManager:
         Raises:
             ValueError: If the response from the API does not contain the 'signedUrls' key.
         """
+        if "_" in file_name and " " in file_path:
+            print("Warning: File name contains underscores and spaces. Replacing spaces with underscores.")
+            file_name_to_upload = file_name.replace(" ", "_")
 
         print(f"Uploading file in multipart: {file_path}")
         split_file(file_path, chunk_size)
@@ -480,7 +487,7 @@ class DataManager:
         parts = get_file_parts()
         mime_type = get_mime_type(file_path)
         json = {
-            "name": file_name,
+            "name": file_name_to_upload,
             "mimeType": mime_type,
             "parts": len(parts)
         }
