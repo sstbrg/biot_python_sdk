@@ -520,6 +520,35 @@ class DataManager:
         print("Multipart File Upload Completed", response.json())
         return file_id
 
+    def refresh_token(self, old_token):
+        body = {'refreshToken': old_token}
+        return self._make_authenticated_request('/ums/v2/users/token/refresh', method='POST', json=body)
+    
+
+    def fetch_template_by_filter(self, filter):
+        """
+        Fetches templates based on a filter
+
+        Parameters
+        ----------
+        filter : dict
+            the filter to be used for fetching templates
+
+        Returns
+        -------
+        list
+            the list of templates that match the filter
+        """
+        # Make the API call to fetch templates based on the filter
+        search_request = {"filter": filter}
+        search_request_encoded = urllib.parse.quote(json.dumps(search_request))
+        response = self._make_authenticated_request(f"/settings/v1/templates?searchRequest={search_request_encoded}", method="GET")
+
+        if response:
+            return response.json()
+        else:
+            return None
+            
 class ReportManager:
     """
       The ReportManager class provides functionality for exporting, retrieving, and posting configuration snapshots of various entities using the report system.
@@ -761,6 +790,7 @@ class ReportManager:
         if assests_to_assign_dict:
             report_data_dict = self.filter_report_for_copy(report_data_dict, assests_to_assign_dict)
         self.post_full_configuration_report(report_data_dict)
+
     def filter_report_for_copy(self,report_data_dict,copy_dict):
         for i in range(len(report_data_dict['generic-entity']) - 1, -1, -1):
             r=report_data_dict['generic-entity'][i]
