@@ -260,7 +260,7 @@ class DataManager:
 
 
 
-    def get_ge_by_filter(self, filter):
+    def get_ge_by_filter(self, filter, page=0, limit=100):
         """
         Retrieve generic entities by a filter.
 
@@ -276,7 +276,7 @@ class DataManager:
             or one or more of the built-in parameters _id,_ownerOrganization.id,_name,_templateId,_templateName,_lastModifiedTime,_creationTime 
         """
 
-        search_request = {"filter": filter}
+        search_request = {"filter": filter, "page": page, "limit": limit}
         search_request_encoded = urllib.parse.quote(json.dumps(search_request))
         return self._make_authenticated_request(f"/generic-entity/v1/generic-entities?searchRequest={search_request_encoded}").json()
     
