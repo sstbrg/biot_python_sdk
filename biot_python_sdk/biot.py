@@ -312,6 +312,12 @@ class DataManager:
         search_request_encoded = urllib.parse.quote(json.dumps(search_request))
         return self._make_authenticated_request(f"/device/v1/devices/usage-sessions?searchRequest={search_request_encoded}").json()
     
+    def create_usage_session(self, device_id, session_template_name, session_data):
+        """
+        Create a new usage session for the given device.
+        """
+        return self._make_authenticated_request(f"/device/v1/devices/{device_id}/usage-sessions/usage-type/{session_template_name}", method="post", json=session_data)
+    
     def update_usage_session(self, usage_session_id, device_id, update_data):
         """
         Update a usage session with the given data.
