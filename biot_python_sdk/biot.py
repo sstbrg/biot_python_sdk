@@ -27,8 +27,9 @@ class APIClient:
         """
 
         self.base_url = base_url
+        self.verbose = False
 
-    def make_request(self, endpoint, method='GET', headers=None, json=None, data=None):
+    def make_request(self, endpoint, method='GET', headers=None, json=None, data=ModuleNotFoundError):
         """
         Make an HTTP request to the specified endpoint.
 
@@ -47,6 +48,12 @@ class APIClient:
         for attempt in range(API_CALL_RETRIES):
             try:
                 response = requests.request(method, url, headers=headers, json=json, data=data)
+                if self.verbose:
+                    print(f"API request: {method} {url}")
+                    print(f"Headers: {headers}")
+                    print(f"JSON: {json}")
+                    print(f"Data: {data}")
+                    print(f"Response: {response.status_code} {response.text}")
                 response.raise_for_status()
                 return response
             except requests.RequestException as e:
