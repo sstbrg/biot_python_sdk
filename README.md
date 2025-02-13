@@ -1,96 +1,205 @@
-# Biot Python SDK Documentation
+# Biot Python SDK
 
-This document provides an overview of the Biot Python SDK, a collection of classes and methods for interacting with the Biot API. The SDK includes functionality for making authenticated requests, handling data operations, and managing files.
+## Introduction
 
-## Table of Contents
+The **Biot Python SDK** is a comprehensive toolkit designed to interact seamlessly with the **Bio-T Open API**. It provides easy-to-use classes for authentication, data retrieval, system health checks, and report management.
 
-- [APIClient](#apiclient)
-- [BiotClient](#biotclient)
-- [DataManager](#datamanager)
-- [ReportManager](#reportmanager)
+This SDK is ideal for developers looking to integrate Bio-T’s system into their applications, enabling quick and efficient API interactions.
 
-## APIClient
+---
 
-The `APIClient` class is responsible for making HTTP requests to a specified API. It provides a `make_request` method that can be used to send GET, POST, PUT, PATCH, and DELETE requests to the API. The method handles retries and delays in case of request failures.
+## Installation
 
-### Attributes
+Before using the SDK, install the required dependencies:
 
-- `base_url` (str): The base URL for the API.
+```sh
+pip install -r requirements.txt
+```
 
-### Methods
+or directly install the package:
 
-- `__init__(self, base_url)`: Initializes the APIClient with the base URL.
-- `make_request(self, endpoint, method='GET', headers=None, json=None, data=None)`: Makes an HTTP request to the specified endpoint.
+```sh
+pip install biot_python_sdk
+```
 
-## BiotClient
+---
 
-The `BiotClient` class is a client for interacting with the Biot API, handling authentication and health checks. It uses an instance of the `APIClient` class to make requests to the API.
+## Quick Start
 
-### Attributes
+Here’s a simple example:
 
-- `api_client` (APIClient): The API client for making requests.
-- `username` (str): The username for authentication.
-- `password` (str): The password for authentication.
-- `token` (str): The authentication token.
+```python
+from biot_python_sdk import APIClient, BiotClient
 
-### Methods
+# Initialize API client
+api_client = APIClient("https://api.dev.xtrodes1.biot-med.com")
 
-- `__init__(self, api_client, username=None, password=None, token=None)`: Initializes the BiotClient with the API client and optional authentication credentials.
-- `login(self)`: Authenticates with the Biot API using the provided username and password.
-- `is_system_healthy(self, healthcheck_endpoint)`: Checks if the system is healthy by calling the health check endpoint.
-- `get_headers(self)`: Gets the headers for authenticated requests.
+# Authenticate using username and password
+biot_client = BiotClient(api_client, username="your_username", password="your_password")
+token = biot_client.login()
 
-## DataManager
+# Check system health
+is_healthy = biot_client.is_system_healthy('/settings/system/healthCheck')
+print(f"System Healthy: {is_healthy}")
+```
 
-The `DataManager` class is a manager for handling data operations with the Biot API. It uses an instance of the `BiotClient` class to make authenticated requests to the API.
+---
 
-### Attributes
+# **Class Documentation**
 
-- `biot_client` (BiotClient): The Biot client for making authenticated requests.
-- `allow_delete` (bool): Whether to allow delete operations.
-- `healthcheck_endpoints` (dict): A dictionary mapping service names to their health check endpoints.
+## **1. APIClient (Handles HTTP Requests)**
 
-### Methods
+### **Attributes**
+| Attribute  | Description |
+|------------|------------|
+| `base_url` | The base URL of the Biot API (e.g., `"https://api.dev.xtrodes1.biot-med.com"`) |
+| `headers`  | Default headers for requests (including authentication token) |
+| `retry_count` | Number of request retries in case of failure |
 
-- `__init__(self, biot_client, allow_delete=False)`: Initializes the DataManager with the Biot client.
-- `_determine_healthcheck_endpoint(self, endpoint)`: Determines the appropriate health check endpoint based on the provided endpoint.
-- `_make_authenticated_request(self, endpoint, method='GET', json=None)`: Makes authenticated requests with health check.
-- `get_session_by_uuid(self, session_uuid)`: Retrieves a session by its UUID.
-- `get_ge_by_filter(self, filter)`: Retrieves generic entities by a filter.
-- `get_usage_session_by_id(self, session_id, device_id)`: Retrieves a usage session by its ID and the associated device ID.
-- `get_usage_session_by_filter(self, filter)`: Retrieves usage sessions by a filter.
-- `update_usage_session(self, usage_session_id, device_id, update_data)`: Updates a usage session with the given data.
-- `get_file_signedurl_by_fileid(self, file_id)`: Retrieves a signed URL for a file by its ID.
-- `create_generic_entity_by_template_name(self, template_name, data)`: Creates a generic entity using a template name and data.
-- `update_generic_entity_by_id(self, entity_id, updated_data)`: Updates a generic entity with the given data.
-- `delete_generic_entity_by_id(self, entity_id)`: Deletes a generic entity by its ID.
-- `_create_file_and_get_upload_url(self, file_name, mime_type)`: Creates a file on the Biot API and retrieves a signed URL for uploading the file data.
-- `upload_file(self, file_path)`: Uploads a file to the Biot API.
-- `upload_file_from_ram(self, data, file_name)`: Uploads a file from memory to the Biot API.
-- `upload_multipart(self, file_path, file_name, chunk_size=1024 * 1024 * 5)`: Uploads a file in multipart format to the Biot API.
+### **Methods**
+#### `make_request(endpoint: str, method: str = 'GET', data: dict = None, params: dict = None, headers: dict = None) -> dict`
+- Sends an HTTP request and handles retries/errors.
 
-## ReportManager
+**Example:**
+```python
+response = api_client.make_request("/settings/system/healthCheck")
+```
 
-The `ReportManager` class provides functionality for exporting, retrieving, and posting configuration snapshots of various entities using the report system. It handles data for devices and generic entities, allowing for the export of reports, transfer of configurations across organizations, and updates of references between entities.
+---
 
-### Attributes
+## **2. BiotClient (Handles Authentication & Base API Functions)**
 
-- `data_mgr`: An instance of the data manager class responsible for interacting with the backend API.
-- `configuration_template_names` (list): A list of template names used for configuration.
-- `back_reference_mapping` (dict): A mapping of entities to their back references, used for updating references after posting.
-- `reference_to_copy_dict` (dict): A dictionary defining the mapping between entities and the references that need to be copied when copying configurations between organizations.
-- `ge_post_order` (tuple): The order in which generic entities should be posted to ensure dependencies are met.
+### **Attributes**
+| Attribute | Description |
+|------------|------------|
+| `api_client`  | Instance of `APIClient` |
+| `username`    | Bio-T account username |
+| `password`    | Bio-T account password |
+| `auth_token`  | Stores authentication token |
 
-### Methods
+### **Methods**
+#### `login() -> str`
+- Authenticates user and retrieves API token.
 
-- `export_snapshot_by_entities(self, report_name, ge_template_names_to_filt, save_devices=False, start_date="2024-05-01T09:03:33Z")`: Generates and exports a snapshot of data entities based on specified templates and a date range.
-- `export_full_configuration_snapshot(self, report_name, start_date="2024-05-01T09:03:33Z")`: A wrapper function for `export_snapshot_by_entities` that exports the full configuration snapshot.
-- `get_report_file_by_name(self, report_name)`: Retrieves the report file by its name.
-- `post_full_configuration_report(self, report_dict)`: Posts the full configuration data (retrieved from a report) to the server.
-- `post_report_json(self, report_data, template_type)`: Posts a single report (either device or generic entity) in JSON format to the server.
-- `config_report_to_different_org(self, src_org_id, new_org_id, report_data_dict)`: Configures a report to be associated with a different organization.
-- `full_org_transfer_wrapper(self, src_org_id, dst_org_id, report_name, assests_to_assign_dict=None)`: Transfers an entire organization configuration to another organization.
-- `filter_report_for_copy(self, report_data_dict, copy_dict)`: Filters the report data based on specified assets.
-- `update_report_by_reference_lookuptable(self, lookup_table, report_data, reference_name, template_name)`: Updates report data by replacing references with IDs from a lookup table.
+```python
+token = biot_client.login()
+```
 
-The SDK provides a convenient and easy-to-use interface for interacting with the Biot API, allowing developers to quickly and easily build applications that leverage the API's functionality.
+#### `is_system_healthy(endpoint: str) -> bool`
+- Checks if the system is running correctly.
+  
+```python
+is_healthy = biot_client.is_system_healthy('/settings/system/healthCheck')
+```
+
+---
+
+## **3. DataManager (File and Data Management)**
+
+### **Attributes**
+| Attribute | Description |
+|------------|------------|
+| `biot_client` | Instance of `BiotClient` |
+
+### **Methods**
+#### `get_session_by_uuid(uuid: str) -> dict`
+- Retrieves session details by UUID.
+
+```python
+session_data = data_manager.get_session_by_uuid("123e4567-e89b-12d3-a456-426614174000")
+```
+
+#### `upload_file(filepath: str) -> str`
+- Uploads a file to Bio-T.
+
+```python
+file_id = data_manager.upload_file("data.csv")
+```
+
+#### `create_generic_entity(entity_name: str, entity_data: dict) -> dict`
+- Creates a new Generic Entity (GE).
+
+```python
+entity = data_manager.create_generic_entity("NewEntity", {"key": "value"})
+```
+
+#### `update_generic_entity(entity_id: str, entity_data: dict) -> dict`
+- Updates existing GE.
+
+```python
+updated_entity = data_manager.update_generic_entity("entity123", {"key": "new_value"})
+```
+
+---
+
+## **4. ReportManager (Handles Reports & Config Snapshots)**
+
+### **Attributes**
+| Attribute | Description |
+|------------|------------|
+| `data_manager` | Instance of `DataManager` |
+
+### **Methods**
+#### `export_full_configuration_snapshot(report_name: str) -> str`
+- Exports a full configuration snapshot.
+
+```python
+snapshot_id = report_manager.export_full_configuration_snapshot("Snapshot_ABC")
+```
+
+#### `get_report_file_by_name(report_name: str) -> dict`
+- Retrieves report file details.
+
+```python
+report_data = report_manager.get_report_file_by_name("Snapshot_ABC")
+```
+
+#### `import_configuration_snapshot(snapshot_file: str) -> bool`
+- Imports a configuration snapshot.
+
+```python
+success = report_manager.import_configuration_snapshot("Snapshot_ABC.json")
+```
+
+---
+
+# **Environment Variables Setup**
+For security, store credentials in an `.env` file, for example:
+
+```ini
+biot_username=your_email@domain.com
+biot_password=your_secure_password
+biot_endpoint=https://api.dev.xtrodes1.biot-med.com
+```
+
+---
+
+# **Running Tests**
+Run the full test suite:
+
+```sh
+pytest
+```
+
+---
+
+# **Contributing**
+We welcome community contributions! Here’s the workflow:
+
+1. **Fork the repository**.
+2. **Create a feature branch**.
+3. **Implement changes & tests**.
+4. **Submit a pull request**.
+
+---
+
+# **License**
+This project is licensed under the **MIT License**.
+
+---
+
+# **Support**
+For questions, contact **Stanislav Steinberg** at:
+📧 [sstbrg@gmail.com](mailto:sstbrg@gmail.com)
+
+---
