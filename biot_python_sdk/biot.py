@@ -266,7 +266,17 @@ class DataManager:
         return self._make_authenticated_request(f"/device/v1/devices/usage-sessions?searchRequest={search_request_encoded}")
 
 
-
+    def get_ge_by_id(self, ge_id):
+        """
+        Retrieve a generic entity by its ID.
+        Args:
+            ge_id (str): The ID of the generic entity to retrieve.  
+        Returns:
+            dict: The generic entity data, or None if the request failed.
+        """
+        return self._make_authenticated_request(f"/generic-entity/v1/generic-entities/{ge_id}")
+    
+    
     def get_ge_by_filter(self, filter, page=0, limit=100):
         """
         Retrieve generic entities by a filter.
