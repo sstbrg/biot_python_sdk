@@ -29,7 +29,7 @@ class APIClient:
         self.base_url = base_url
         self.verbose = False
 
-    def make_request(self, endpoint, method='GET', headers=None, json=None, data=ModuleNotFoundError):
+    def make_request(self, endpoint, method='GET', headers=None, json=None, data=None):
         """
         Make an HTTP request to the specified endpoint.
 
