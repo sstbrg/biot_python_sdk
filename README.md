@@ -1,3 +1,6 @@
+# Badges
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/sstbrg/biot_python_sdk?utm_source=oss&utm_medium=github&utm_campaign=sstbrg%2Fbiot_python_sdk&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
+
 # Biot Python SDK Documentation
 
 This document provides an overview of the Biot Python SDK, a collection of classes and methods for interacting with the Biot API. The SDK includes functionality for making authenticated requests, handling data operations, and managing files.
