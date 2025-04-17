@@ -434,7 +434,7 @@ class DataManager:
         else:
             return None
     
-    def upload_file_from_ram(self, data, file_name):
+    def upload_file_from_ram(self, data, file_name,mime_type = 'application/octet-stream'):
         """
         Upload a file from memory to the Biot API.
 
@@ -449,7 +449,7 @@ class DataManager:
             dict: The file information returned by the API, or None if the upload failed.
         """
 
-        mime_type = get_mime_type(file_name) # mime_type = 'application/octet-stream'
+        #mime_type = get_mime_type(file_name) # mime_type = 'application/octet-stream'
         file_info = self._create_file_and_get_upload_url(file_name, mime_type)
         if file_info:
             upload_url = file_info.get('signedUrl')
