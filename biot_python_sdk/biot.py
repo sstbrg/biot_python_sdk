@@ -29,17 +29,15 @@ class APIClient:
         self.base_url = base_url
         self.verbose = False
 
-    def make_request(self, endpoint, method='GET', headers=None, json=None, data=ModuleNotFoundError):
+    def make_request(self, endpoint, method='GET', headers=None, json=None, data=None):
         """
         Make an HTTP request to the specified endpoint.
-
         Args:
             endpoint (str): The API endpoint to call.
             method (str): The HTTP method to use (default 'GET').
             headers (dict): Optional headers to include in the request.
             json (dict): Optional JSON data to include in the request.
             data (dict): Optional form data to include in the request.
-
         Returns:
             requests.Response: The HTTP response object, or None if the request failed.
         """
@@ -48,14 +46,12 @@ class APIClient:
         for attempt in range(API_CALL_RETRIES):
             try:
                 response = requests.request(method, url, headers=headers, json=json, data=data)
-                if self.verbose:
-                    print(f"API request: {method} {url}")
-                    print(f"Headers: {headers}")
-                    print(f"JSON: {json}")
-                    print(f"Data: {data}")
-                    print(f"Response: {response.status_code} {response.text}")
                 response.raise_for_status()
                 return response
+            except requests.exceptions.HTTPError as e:
+                print(f"API request failed (attempt {attempt + 1}/{API_CALL_RETRIES}): {e}")
+                print(f"Response text: {e.response.text}")
+                time.sleep(RETRY_DELAY)
             except requests.RequestException as e:
                 print(f"API request failed (attempt {attempt + 1}/{API_CALL_RETRIES}): {e}")
                 time.sleep(RETRY_DELAY)
@@ -177,12 +173,10 @@ class DataManager:
     def _make_authenticated_request(self, endpoint, method='GET', json=None):
         """
         Helper method to make authenticated requests with health check.
-
         Args:
             endpoint (str): The API endpoint to call.
             method (str): The HTTP method to use (default 'GET').
             json (dict, optional): Optional JSON data to include in the request.
-
         Returns:
             dict: The JSON response data, or None if the request failed.
         """
@@ -206,7 +200,12 @@ class DataManager:
             allowed_codes = {200, 201}
         if response and response.status_code in allowed_codes:
             return response
-        print(f"API request failed with status code: {response.status_code if response else 'Unknown'}")
+        
+        if response:
+            print(f"API request failed with status code: {response.status_code}")
+            print(f"Response: {response.text}")
+        else:
+            print("API request failed. No response received.")
         return None
 
     def _get_template_id_from_name(self,template_name):
@@ -266,7 +265,17 @@ class DataManager:
         return self._make_authenticated_request(f"/device/v1/devices/usage-sessions?searchRequest={search_request_encoded}")
 
 
-
+    def get_ge_by_id(self, ge_id):
+        """
+        Retrieve a generic entity by its ID.
+        Args:
+            ge_id (str): The ID of the generic entity to retrieve.  
+        Returns:
+            dict: The generic entity data, or None if the request failed.
+        """
+        return self._make_authenticated_request(f"/generic-entity/v1/generic-entities/{ge_id}")
+    
+    
     def get_ge_by_filter(self, filter, page=0, limit=100):
         """
         Retrieve generic entities by a filter.
